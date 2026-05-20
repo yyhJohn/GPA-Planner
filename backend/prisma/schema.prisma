@@ -1,0 +1,400 @@
+// GPA Planner — Prisma Schema
+// PostgreSQL + Prisma ORM
+// MVP 版本，不过度设计
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// 1. users — 用户表
+// ============================================================
+model User {
+  id            String   @id @default(cuid())
+  email         String?  @unique
+  phone         String?  @unique
+  wechatId      String?  @unique @map("wechat_id")
+  name          String?
+  passwordHash  String?  @map("password_hash")
+  avatarUrl     String?  @map("avatar_url")
+  role          String   @default("user") // user | admin
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // relations
+  profile       StudentProfile?
+  courses       Course[]
+  projects      Project[]
+  internships   Internship[]
+  research      Research[]
+  preferences   TargetPreference?
+  reports       Report[]
+  payments      Payment[]
+
+  @@map("users")
+}
+
+// ============================================================
+// 2. student_profiles — 学生背景信息
+// ============================================================
+model StudentProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique @map("user_id")
+
+  // 基本信息
+  gender            String?  // male / female / other
+  grade             String   // freshman / sophomore / junior / senior / graduated
+
+  // 本科背景
+  university        String
+  universityTier    String   @map("university_tier") // 985 / 211 / double_first / normal / joint
+  college           String?  // 学院
+  major             String
+  minor             String?  // 辅修
+  duration          Int      @default(4) // 学制年数
+  graduationDate    DateTime @map("graduation_date")
+
+  // GPA 信息
+  currentGpa        Float    @map("current_gpa")
+  gpaScale          Float    @map("gpa_scale") // 4.0 / 5.0 / 100
+  gpaRanking        String?  @map("gpa_ranking") // "前15%" 或 "12/120"
+  majorGpa          Float?   @map("major_gpa")
+  percentageAvg     Float?   @map("percentage_avg")
+  gpaCalcRule       String?  @map("gpa_calc_rule") // weighted / arithmetic / custom
+  hasRetake         Boolean  @default(false) @map("has_retake")
+
+  // 语言成绩
+  hasLanguageScore  String   @map("has_language_score") // yes / preparing / no
+  ieltsTotal        Float?   @map("ielts_total")
+  ieltsL            Float?   @map("ielts_listening")
+  ieltsR            Float?   @map("ielts_reading")
+  ieltsW            Float?   @map("ielts_writing")
+  ieltsS            Float?   @map("ielts_speaking")
+  toeflTotal        Int?     @map("toefl_total")
+  toeflR            Int?     @map("toefl_reading")
+  toeflL            Int?     @map("toefl_listening")
+  toeflS            Int?     @map("toefl_speaking")
+  toeflW            Int?     @map("toefl_writing")
+  greTotal          Int?     @map("gre_total")
+  greQuant          Int?     @map("gre_quant")
+  greVerbal         Int?     @map("gre_verbal")
+  greAw             Float?   @map("gre_aw")
+  gmatScore         Int?     @map("gmat_score")
+  cet4Score         Int?     @map("cet4_score")
+  cet6Score         Int?     @map("cet6_score")
+  plannedExamDate   DateTime? @map("planned_exam_date")
+
+  // 预算
+  tuitionBudget     String?  @map("tuition_budget") // "15w_below" / "15-25w" / ...
+  livingBudget      String?  @map("living_budget")
+  needScholarship   String?  @map("need_scholarship") // required / preferred / no
+  acceptLoan        Boolean? @map("accept_loan")
+
+  // 职业目标
+  postGradPlan      String?  @map("post_grad_plan") // domestic / overseas / phd / startup / undecided
+  targetIndustry    String?  @map("target_industry") // JSON array stored as string
+  targetRole        String?  @map("target_role")
+  cityPreference    String?  @map("city_preference")
+
+  // 补充信息
+  extracurriculars  String?  // 课外活动
+  specialBackground String?  @map("special_background") // JSON array
+  existingOffers    String?  @map("existing_offers") // JSON array
+  concerns          String?  // JSON array: 最担心什么
+  referralSource    String?  @map("referral_source")
+  additionalInfo    String?  @map("additional_info") // 其他补充
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+// ============================================================
+// 3. courses — 已修课程
+// ============================================================
+model Course {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  courseName  String   @map("course_name")
+  courseType  String   @map("course_type") // required / elective / general / lab / practice
+  credit      Float
+  score       String   // "A" 或 "85"
+  scoreType   String   @map("score_type") // grade / percentage
+  semester    String   // "大一上" / "freshman_fall"
+  category    String?  // math / english / major_core / major_elective / general / sports / other
+
+  // 是否为重修课程
+  isRetake    Boolean  @default(false) @map("is_retake")
+  originalScore String? @map("original_score") // 重修前的原始成绩
+
+  // 当前学期在修 / 下学期可选（用 type 区分）
+  recordType  String   @default("completed") // completed / current / available
+
+  // 下学期可选课程的额外字段
+  difficulty  String?  // high / medium / low（仅 available 类型用）
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("courses")
+}
+
+// ============================================================
+// 4. projects — 项目经历
+// ============================================================
+model Project {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  name        String   // 项目名称
+  role        String   // 你的角色
+  type        String   // course / personal / competition / company
+  techStack   String?  @map("tech_stack") // JSON array: ["Python", "PyTorch"]
+  description String?  // 项目描述
+  duration    String?  // "2025.03 - 2025.06"
+  outcome     String?  // 成果
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("projects")
+}
+
+// ============================================================
+// 5. internships — 实习经历
+// ============================================================
+model Internship {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+
+  company      String
+  position     String
+  department   String?
+  duration     String   // "2025.06 - 2025.09"
+  description  String?
+  achievement  String?
+  relatedLevel String?  @map("related_level") // high / medium / low
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("internships")
+}
+
+// ============================================================
+// 6. research_experiences — 科研经历
+// ============================================================
+model Research {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+
+  topic       String   // 研究课题
+  advisor     String?  // 导师
+  lab         String?  // 实验室
+  duration    String
+  role        String?  // 你的角色
+  description String?
+  output      String?  // 产出：论文/专利
+  fieldTags   String?  @map("field_tags") // JSON array
+
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("research_experiences")
+}
+
+// ============================================================
+// 7. target_preferences — 申请目标偏好
+// ============================================================
+model TargetPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique @map("user_id")
+
+  targetDegree        String   @map("target_degree") // taught_master / research_master / phd
+  targetMajors        String   @map("target_majors") // JSON array: ["数据科学", "AI"]
+  acceptCrossMajor    String   @map("accept_cross_major") // full / related / no
+  priorityFactors     String?  @map("priority_factors") // JSON array
+  targetRegions       String   @map("target_regions") // JSON array: ["uk", "hk"]
+  regionPrefOrder     String?  @map("region_pref_order") // JSON array（有序）
+  multiRegionApply    Boolean  @default(true) @map("multi_region_apply")
+
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // relations
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("target_preferences")
+}
+
+// ============================================================
+// 8. reports — AI 生成的报告
+// ============================================================
+model Report {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+
+  // 报告元数据
+  title         String   @default("GPA 规划报告")
+  status        String   @default("draft") // draft / completed
+  isPaid        Boolean  @default(false) @map("is_paid")
+  reportType    String   @default("full") @map("report_type") // full / gpa_only / school_only
+
+  // 快照数据（报告生成时的 GPA，避免后续修改影响历史报告）
+  gpaSnapshot   Float    @map("gpa_snapshot")
+  gpaScale      Float    @map("gpa_scale")
+
+  // AI 生成的报告内容（JSON 存储，结构化数据）
+  content       Json     // 完整报告 JSON
+
+  // 报告各模块评分（可选，用于快速预览）
+  competitivenessScore  Float?  @map("competitiveness_score") // 0-100
+  gpaScore              Float?  @map("gpa_score")
+  experienceScore       Float?  @map("experience_score")
+  languageScore         Float?  @map("language_score")
+
+  // 生成参数
+  aiModel       String?  @map("ai_model") // 用的哪个模型生成
+  promptVersion String?  @map("prompt_version") // prompt 版本号
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment       Payment?
+
+  @@index([userId])
+  @@map("reports")
+}
+
+// ============================================================
+// 9. payments — 支付记录
+// ============================================================
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  reportId      String?  @unique @map("report_id")
+
+  // 支付信息
+  amount        Int      // 金额（分），1990 = ¥19.90
+  currency      String   @default("CNY")
+  status        String   @default("pending") // pending / paid / refunded / failed
+  paymentMethod String?  @map("payment_method") // wechat / alipay
+
+  // 第三方支付信息
+  transactionId String?  @unique @map("transaction_id") // 微信/支付宝交易号
+  paidAt        DateTime? @map("paid_at")
+  refundedAt    DateTime? @map("refunded_at")
+
+  // 产品信息
+  productType   String   @map("product_type") // single_report / membership_month / membership_quarter
+  productName   String   @map("product_name") // "AI 选课方案" / "Pro 月卡"
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  report        Report?  @relation(fields: [reportId], references: [id])
+
+  @@index([userId])
+  @@index([transactionId])
+  @@map("payments")
+}
+
+// ============================================================
+// 10. universities — 学校数据库（只读参考表）
+// ============================================================
+model University {
+  id          String   @id @default(cuid())
+  name        String   @unique // "University College London"
+  nameCn      String   @unique @map("name_cn") // "伦敦大学学院"
+  country     String   // uk / hk / sg / us / au / ca
+  region      String?  // england / scotland / hong_kong / ...
+  tier        String?  // qs_top50 / qs_top100 / qs_top200 / ...
+  qsRanking   Int?     @map("qs_ranking")
+  timesRanking Int?    @map("times_ranking")
+
+  // 申请相关信息（JSON 存储，灵活扩展）
+  admissionInfo Json?  @map("admission_info") // { "typical_gpa": "3.3+", "ielts_min": "6.5", ... }
+  chineseList   String? @map("chinese_list") // 英国院校 List 分类
+
+  programs      Program[]
+
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([country])
+  @@index([qsRanking])
+  @@map("universities")
+}
+
+// ============================================================
+// 11. programs — 硕士项目（只读参考表）
+// ============================================================
+model Program {
+  id              String   @id @default(cuid())
+  universityId    String   @map("university_id")
+
+  name            String   // "MSc Data Science"
+  nameCn          String?  @map("name_cn") // "数据科学硕士"
+  degree          String   @default("master") // master / phd
+  category        String   // data_science / cs / ai / business / ...
+  department      String?
+
+  // 申请要求
+  gpaMin          Float?   @map("gpa_min") // 最低 GPA 要求
+  ieltsMin        Float?   @map("ielts_min")
+  toeflMin        Int?     @map("toefl_min")
+  greRequired     Boolean  @default(false) @map("gre_required")
+  gmatRequired    Boolean  @default(false) @map("gmat_required")
+
+  // 项目信息
+  tuitionFee      Int?     @map("tuition_fee") // 学费（英镑/年）
+  currency        String?  // GBP / HKD / SGD / USD
+  duration        String?  // "1 year" / "2 years"
+  intakeSeason    String?  @map("intake_season") // fall / spring / both
+
+  // 申请信息
+  applicationDeadline String? @map("application_deadline") // "rolling" / "2027-01-15"
+  typicalClassSize    Int?    @map("typical_class_size")
+  acceptanceRate      Float?  @map("acceptance_rate") // 0-1
+
+  // 课程匹配关键词（JSON 数组，用于 AI 匹配）
+  requiredCourses     String? @map("required_courses") // JSON: ["linear_algebra", "programming"]
+  preferredBackground String? @map("preferred_background") // JSON: ["cs", "math", "stats"]
+
+  // 其他信息
+  website         String?
+  notes           String?  // 备注
+
+  university      University @relation(fields: [universityId], references: [id])
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([universityId])
+  @@index([category])
+  @@map("programs")
+}
