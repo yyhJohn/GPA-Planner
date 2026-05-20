@@ -118,7 +118,7 @@ router.post('/free', async (req, res) => {
     // 调用 OpenAI
     const prompt = buildFreeReportPrompt(profile, courses, targetGpa)
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.MIMO_MODEL || 'mimo-v2.5-pro',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: prompt },
@@ -140,7 +140,7 @@ router.post('/free', async (req, res) => {
         gpaScale: profile.gpaScale,
         competitivenessScore: aiContent.competitiveness_score || 0,
         content: aiContent,
-        aiModel: process.env.OPENAI_MODEL || 'gpt-4o',
+        aiModel: process.env.MIMO_MODEL || 'mimo-v2.5-pro',
       },
     })
 
@@ -186,7 +186,7 @@ router.post('/full', async (req, res) => {
 
     const prompt = buildFullReportPrompt(profile, courses, freeReport.content)
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: process.env.MIMO_MODEL || 'mimo-v2.5-pro',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: prompt },

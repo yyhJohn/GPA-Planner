@@ -1,13 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { isLoggedIn, removeToken } from '../utils'
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [loggedIn, setLoggedIn] = useState(false)
+
+  useEffect(() => {
+    setLoggedIn(isLoggedIn())
+    const handler = () => setLoggedIn(isLoggedIn())
+    window.addEventListener('hashchange', handler)
+    window.addEventListener('storage', handler)
+    return () => {
+      window.removeEventListener('hashchange', handler)
+      window.removeEventListener('storage', handler)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    removeToken()
+    localStorage.removeItem('user')
+    setLoggedIn(false)
+    window.location.hash = '#/'
+  }
 
   const navLinks = [
     { name: '功能', href: '#features' },
     { name: '流程', href: '#process' },
-    { name: '填写背景', href: '#/profile' },
-    { name: '示例报告', href: '#/report' },
     { name: '价格', href: '#pricing' },
     { name: 'FAQ', href: '#faq' },
   ]
@@ -41,12 +59,28 @@ export default function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <a href="#cta" className="text-gray-600 hover:text-blue-600 font-medium">
-              登录
-            </a>
-            <a href="#cta" className="btn-primary text-sm">
-              免费体验
-            </a>
+            {loggedIn ? (
+              <>
+                <a href="#/reports" className="text-gray-600 hover:text-blue-600 font-medium">
+                  我的报告
+                </a>
+                <a href="#/profile" className="text-gray-600 hover:text-blue-600 font-medium">
+                  填写档案
+                </a>
+                <button onClick={handleLogout} className="text-gray-600 hover:text-red-600 font-medium">
+                  退出
+                </button>
+              </>
+            ) : (
+              <>
+                <a href="#/login" className="text-gray-600 hover:text-blue-600 font-medium">
+                  登录
+                </a>
+                <a href="#/login" className="btn-primary text-sm">
+                  免费注册
+                </a>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -81,12 +115,18 @@ export default function Navbar() {
                 </a>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-gray-100">
-                <a href="#cta" className="text-gray-600 hover:text-blue-600 font-medium px-2">
-                  登录
-                </a>
-                <a href="#cta" className="btn-primary text-center">
-                  免费体验
-                </a>
+                {loggedIn ? (
+                  <>
+                    <a href="#/reports" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>我的报告</a>
+                    <a href="#/profile" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>填写档案</a>
+                    <button onClick={() => { handleLogout(); setIsMenuOpen(false) }} className="text-left text-gray-600 hover:text-red-600 font-medium px-2">退出</button>
+                  </>
+                ) : (
+                  <>
+                    <a href="#/login" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>登录</a>
+                    <a href="#/login" className="btn-primary text-center" onClick={() => setIsMenuOpen(false)}>免费注册</a>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -9,6 +9,7 @@ import Pricing from './components/Pricing'
 import FAQ from './components/FAQ'
 import CTA from './components/CTA'
 import Footer from './components/Footer'
+import GPAConverter from './components/GPAConverter'
 import ProfileFormPage from './pages/ProfileFormPage'
 import ReportPage from './pages/ReportPage'
 import LoginPage from './pages/LoginPage'
@@ -20,6 +21,15 @@ function HomePage() {
       <Navbar />
       <Hero />
       <Features />
+      <section className="section-padding bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="section-title">GPA 制式换算</h2>
+          <p className="section-subtitle">4.0 / 5.0 / 百分制 一键互转</p>
+          <div className="max-w-lg mx-auto">
+            <GPAConverter />
+          </div>
+        </div>
+      </section>
       <Process />
       <ReportPreview />
       <TargetAudience />
