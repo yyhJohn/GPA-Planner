@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import StepBasicInfo from '../components/form/StepBasicInfo'
 import StepEducation from '../components/form/StepEducation'
+import AnalyzingPage from './AnalyzingPage'
 import StepGPA from '../components/form/StepGPA'
 import StepCourses from '../components/form/StepCourses'
 import StepTarget from '../components/form/StepTarget'
@@ -111,6 +112,7 @@ export default function ProfileFormPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [formData, setFormData] = useState(initialFormData)
   const [submitted, setSubmitted] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -269,6 +271,7 @@ export default function ProfileFormPage() {
   const handleSubmit = async () => {
     try {
       setSubmitting(true)
+      setAnalyzing(true)
       setError('')
 
       if (isEditing) {
@@ -281,9 +284,11 @@ export default function ProfileFormPage() {
       const reportRes = await reportService.generateFree(parseFloat(formData.currentGpa) || 3.5)
       setReportId(reportRes.data.report.id)
 
+      setAnalyzing(false)
       setSubmitted(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
+      setAnalyzing(false)
       setError(err.message || '提交失败，请稍后重试')
     } finally {
       setSubmitting(false)
@@ -320,6 +325,10 @@ export default function ProfileFormPage() {
         </div>
       </div>
     )
+  }
+
+  if (analyzing) {
+    return <AnalyzingPage />
   }
 
   if (submitted) {
