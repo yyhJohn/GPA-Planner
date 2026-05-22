@@ -176,6 +176,15 @@ export default function ReportPage() {
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
+  const [reportId, setReportId] = useState(null)
+  const [isPaid, setIsPaid] = useState(false)
+
+  // 选课模拟状态
+  const [simCourses, setSimCourses] = useState([{ courseName: '', credit: '3', difficulty: 'medium' }])
+  const [simTargetGpa, setSimTargetGpa] = useState('3.5')
+  const [simResult, setSimResult] = useState(null)
+  const [simLoading, setSimLoading] = useState(false)
 
   useEffect(() => {
     const hash = window.location.hash
@@ -187,6 +196,8 @@ export default function ReportPage() {
         .then((res) => {
           const r = res.data.report
           const content = r.content || {}
+          setReportId(r.id)
+          setIsPaid(r.isPaid)
           setReport({
             id: r.id,
             createdAt: new Date(r.createdAt).toLocaleDateString('zh-CN'),
@@ -233,6 +244,52 @@ export default function ReportPage() {
 
   const d = report.gpaAnalysis
 
+  // 解锁完整报告
+  const handleUnlock = async () => {
+    if (!reportId) return
+    setUnlocking(true)
+    try {
+      await reportService.generateFull(reportId)
+      setIsPaid(true)
+      // 重新加载报告
+      const res = await reportService.get(reportId)
+      const r = res.data.report
+      const content = r.content || {}
+      setReport((prev) => ({
+        ...prev,
+        schools: content.schools || prev.schools,
+        plan6Months: content.plan_6_months || prev.plan6Months,
+      }))
+    } catch (err) {
+      if (err.code === 'PAYMENT_REQUIRED') {
+        alert('支付功能尚未接入，敬请期待！')
+      } else {
+        alert('解锁失败：' + (err.message || '请稍后重试'))
+      }
+    } finally {
+      setUnlocking(false)
+    }
+  }
+
+  // 选课模拟
+  const handleSimulate = async () => {
+    if (!reportId) return
+    const valid = simCourses.filter((c) => c.courseName)
+    if (valid.length === 0) {
+      alert('请至少输入一门可选课程')
+      return
+    }
+    setSimLoading(true)
+    try {
+      const res = await reportService.simulate(reportId, valid, parseFloat(simTargetGpa))
+      setSimResult(res.data)
+    } catch (err) {
+      alert('模拟失败：' + (err.message || '请稍后重试'))
+    } finally {
+      setSimLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -243,6 +300,7 @@ export default function ReportPage() {
               <p className="text-blue-200 text-sm">AI 留学规划报告</p>
               <h1 className="text-2xl md:text-3xl font-bold mt-1">你好，{report.studentName} 👋</h1>
               <p className="text-blue-200 text-sm mt-1">报告生成于 {report.createdAt}</p>
+              <a href="#/profile/edit" className="inline-block mt-2 text-xs text-blue-200 hover:text-white underline">✏️ 修改背景信息</a>
             </div>
             <div className="text-center">
               <ScoreRing score={report.overallScore} size={100} strokeWidth={8} color="#60A5FA" />
@@ -489,20 +547,172 @@ export default function ReportPage() {
         </Section>
 
         {/* 付费解锁 CTA */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-center text-white">
-          <h3 className="text-2xl font-bold mb-2">🔓 解锁完整规划报告</h3>
-          <p className="text-blue-100 mb-6 max-w-md mx-auto">
-            包含 6 个月完整时间线、选课方案、PS 撰写建议、推荐信策略等 12 个模块
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="#pricing" className="bg-white text-blue-700 px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors">
-              解锁完整报告 ¥19.9
-            </a>
-            <a href="#/" className="border-2 border-white text-white px-8 py-3 rounded-lg font-bold hover:bg-white/10 transition-colors">
-              返回首页
-            </a>
+        {!isPaid && (
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-center text-white">
+            <h3 className="text-2xl font-bold mb-2">🔓 解锁完整规划报告</h3>
+            <p className="text-blue-100 mb-6 max-w-md mx-auto">
+              包含完整选校方案、选课推荐、PS 撰写建议、推荐信策略等模块
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={handleUnlock}
+                disabled={unlocking}
+                className={`px-8 py-3 rounded-lg font-bold transition-colors ${
+                  unlocking
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    : 'bg-white text-blue-700 hover:bg-gray-100'
+                }`}
+              >
+                {unlocking ? '⏳ 生成中...' : '解锁完整报告'}
+              </button>
+              <a href="#/" className="border-2 border-white text-white px-8 py-3 rounded-lg font-bold hover:bg-white/10 transition-colors">
+                返回首页
+              </a>
+            </div>
           </div>
-          <p className="text-blue-200 text-xs mt-4">24 小时内无理由退款 · 支付后立即查看</p>
+        )}
+
+        {/* AI 选课模拟 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <span>🧪</span> AI 选课模拟
+            </h3>
+            <p className="text-sm text-gray-500 mt-0.5">输入下学期可选课程，AI 预测不同组合对 GPA 的影响</p>
+          </div>
+          <div className="p-5">
+            <div className="mb-4">
+              <label className="block text-sm text-gray-600 mb-1">目标 GPA</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="4.0"
+                value={simTargetGpa}
+                onChange={(e) => setSimTargetGpa(e.target.value)}
+                className="w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <label className="block text-sm text-gray-600">可选课程</label>
+              {simCourses.map((c, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="课程名称"
+                    value={c.courseName}
+                    onChange={(e) => {
+                      const updated = [...simCourses]
+                      updated[i] = { ...updated[i], courseName: e.target.value }
+                      setSimCourses(updated)
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="学分"
+                    min="0.5"
+                    step="0.5"
+                    value={c.credit}
+                    onChange={(e) => {
+                      const updated = [...simCourses]
+                      updated[i] = { ...updated[i], credit: e.target.value }
+                      setSimCourses(updated)
+                    }}
+                    className="w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <select
+                    value={c.difficulty}
+                    onChange={(e) => {
+                      const updated = [...simCourses]
+                      updated[i] = { ...updated[i], difficulty: e.target.value }
+                      setSimCourses(updated)
+                    }}
+                    className="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="low">简单</option>
+                    <option value="medium">中等</option>
+                    <option value="high">困难</option>
+                  </select>
+                  {simCourses.length > 1 && (
+                    <button
+                      onClick={() => setSimCourses(simCourses.filter((_, idx) => idx !== i))}
+                      className="text-gray-400 hover:text-red-500"
+                    >✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setSimCourses([...simCourses, { courseName: '', credit: '3', difficulty: 'medium' }])}
+                className="flex-1 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium"
+              >
+                + 添加课程
+              </button>
+              <button
+                onClick={handleSimulate}
+                disabled={simLoading}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
+                  simLoading
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {simLoading ? '⏳ AI 模拟中...' : '🧪 开始模拟'}
+              </button>
+            </div>
+
+            {/* 模拟结果 */}
+            {simResult && (
+              <div className="mt-6 space-y-4">
+                <h4 className="font-medium text-gray-900">模拟结果</h4>
+                <p className="text-sm text-gray-600">{simResult.overall_strategy}</p>
+
+                {simResult.simulations?.map((sim, i) => (
+                  <div key={i} className={`p-4 rounded-xl border ${
+                    i === simResult.best_combination_index
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900">
+                        {sim.combination.join(' + ')}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        sim.recommendation === '推荐' ? 'bg-green-200 text-green-800' :
+                        sim.recommendation === '稳妥' ? 'bg-blue-200 text-blue-800' :
+                        'bg-gray-200 text-gray-800'
+                      }`}>
+                        {sim.recommendation}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-gray-600">
+                        预测 GPA：<span className="font-bold text-blue-700">{sim.predicted_gpa}</span>
+                      </span>
+                      <span className={sim.gpa_change >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {sim.gpa_change >= 0 ? '+' : ''}{sim.gpa_change}
+                      </span>
+                      <span className="text-gray-500">风险：{sim.risk}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">{sim.reason}</p>
+                    {i === simResult.best_combination_index && (
+                      <p className="text-xs text-green-600 font-medium mt-1">⭐ 最佳推荐</p>
+                    )}
+                  </div>
+                ))}
+
+                {simResult.warning && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-sm text-yellow-800">
+                    ⚠️ {simResult.warning}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Disclaimer */}

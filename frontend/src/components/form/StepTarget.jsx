@@ -5,14 +5,58 @@ const degrees = [
 ]
 
 const regions = [
-  { value: 'uk', label: '🇬🇧 英国', icon: '🇬🇧' },
-  { value: 'hk', label: '🇭🇰 香港', icon: '🇭🇰' },
-  { value: 'sg', label: '🇸🇬 新加坡', icon: '🇸🇬' },
-  { value: 'us', label: '🇺🇸 美国', icon: '🇺🇸' },
-  { value: 'au', label: '🇦🇺 澳大利亚', icon: '🇦🇺' },
-  { value: 'ca', label: '🇨🇦 加拿大', icon: '🇨🇦' },
-  { value: 'jp', label: '🇯🇵 日本', icon: '🇯🇵' },
-  { value: 'eu', label: '🇪🇺 欧洲其他', icon: '🇪🇺' },
+  // 热门留学地
+  { value: 'us', label: '🇺🇸 美国' },
+  { value: 'uk', label: '🇬🇧 英国' },
+  { value: 'hk', label: '🇭🇰 香港' },
+  { value: 'sg', label: '🇸🇬 新加坡' },
+  { value: 'au', label: '🇦🇺 澳大利亚' },
+  { value: 'ca', label: '🇨🇦 加拿大' },
+  { value: 'jp', label: '🇯🇵 日本' },
+  { value: 'kr', label: '🇰🇷 韩国' },
+  { value: 'tw', label: '🇹🇼 台湾' },
+  { value: 'nz', label: '🇳🇿 新西兰' },
+  // 欧洲
+  { value: 'de', label: '🇩🇪 德国' },
+  { value: 'fr', label: '🇫🇷 法国' },
+  { value: 'nl', label: '🇳🇱 荷兰' },
+  { value: 'ch', label: '🇨🇭 瑞士' },
+  { value: 'se', label: '🇸🇪 瑞典' },
+  { value: 'dk', label: '🇩🇰 丹麦' },
+  { value: 'fi', label: '🇫🇮 芬兰' },
+  { value: 'be', label: '🇧🇪 比利时' },
+  { value: 'it', label: '🇮🇹 意大利' },
+  { value: 'es', label: '🇪🇸 西班牙' },
+  { value: 'at', label: '🇦🇹 奥地利' },
+  { value: 'ie', label: '🇮🇪 爱尔兰' },
+  { value: 'pt', label: '🇵🇹 葡萄牙' },
+  { value: 'no', label: '🇳🇴 挪威' },
+  { value: 'eu_other', label: '🇪🇺 欧洲其他' },
+  // 亚洲
+  { value: 'my', label: '🇲🇾 马来西亚' },
+  { value: 'th', label: '🇹🇭 泰国' },
+  { value: 'in', label: '🇮🇳 印度' },
+  { value: 'ph', label: '🇵🇭 菲律宾' },
+  { value: 'id', label: '🇮🇩 印尼' },
+  { value: 'vn', label: '🇻🇳 越南' },
+  // 中东
+  { value: 'sa', label: '🇸🇦 沙特' },
+  { value: 'ae', label: '🇦🇪 阿联酋' },
+  { value: 'qa', label: '🇶🇦 卡塔尔' },
+  { value: 'il', label: '🇮🇱 以色列' },
+  { value: 'tr', label: '🇹🇷 土耳其' },
+  // 南美
+  { value: 'br', label: '🇧🇷 巴西' },
+  { value: 'ar', label: '🇦🇷 阿根廷' },
+  { value: 'mx', label: '🇲🇽 墨西哥' },
+  { value: 'cl', label: '🇨🇱 智利' },
+  { value: 'co', label: '🇨🇴 哥伦比亚' },
+  // 非洲
+  { value: 'za', label: '🇿🇦 南非' },
+  { value: 'eg', label: '🇪🇬 埃及' },
+  { value: 'ke', label: '🇰🇪 肯尼亚' },
+  // 其他
+  { value: 'other', label: '🌍 其他' },
 ]
 
 const majorOptions = [
@@ -132,7 +176,7 @@ export default function StepTarget({ formData, updateField }) {
         <label className="block text-sm font-medium text-gray-700 mb-3">
           目标国家/地区（可多选） <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2">
           {regions.map((region) => (
             <button
               key={region.value}

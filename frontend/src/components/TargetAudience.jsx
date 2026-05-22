@@ -30,7 +30,7 @@ export default function TargetAudience() {
     <section className="section-padding bg-gray-50">
       <div className="max-w-7xl mx-auto">
         <h2 className="section-title">
-          谁适合用 StudyPath AI？
+          谁适合用 GPA Planner？
         </h2>
         <p className="section-subtitle">
           不管你是大一还是大四，只要你想留学，这个工具都能帮到你

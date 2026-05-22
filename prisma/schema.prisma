@@ -234,7 +234,7 @@ model TargetPreference {
 
   targetDegree        String   @map("target_degree") // taught_master / research_master / phd
   targetMajors        String   @map("target_majors") // JSON array: ["数据科学", "AI"]
-  acceptCrossMajor    String   @map("accept_cross_major") // full / related / no
+  acceptCrossMajor    String   @default("no") @map("accept_cross_major") // full / related / no
   priorityFactors     String?  @map("priority_factors") // JSON array
   targetRegions       String   @map("target_regions") // JSON array: ["uk", "hk"]
   regionPrefOrder     String?  @map("region_pref_order") // JSON array（有序）
@@ -397,4 +397,23 @@ model Program {
   @@index([universityId])
   @@index([category])
   @@map("programs")
+}
+
+// ============================================================
+// 12. email_verification_codes — 邮箱验证码
+// ============================================================
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  codeHash  String   @map("code_hash")
+  email     String?
+  userId    String?  @map("user_id")
+  purpose   String   @default("register") // register / login / password_reset
+  used      Boolean  @default(false)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("email_verification_codes")
 }

@@ -50,7 +50,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm">
-            © 2026 StudyPath AI. All rights reserved.
+            © 2026 GPA Planner. All rights reserved.
           </p>
           <p className="text-xs text-gray-500 max-w-2xl text-center md:text-right">
             ⚠️ 免责声明：本工具基于公开数据和 AI 分析提供参考建议，不构成任何录取承诺。学校录取标准可能随时调整，请以各校官网最新信息为准。

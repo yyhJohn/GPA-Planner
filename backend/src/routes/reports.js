@@ -285,8 +285,13 @@ ${courseList || '未提供'}
     "strategy": "string"
   },
   "direction_suggestions": [{"name": "string", "match": "高匹配/中匹配", "reason": "string"}],
-  "schools_preview": "string（模糊预览文本）",
-  "course_recommendations_preview": "string（模糊预览文本）"
+  "schools": {
+    "sprint": [{"name": "string", "program": "string", "match_level": "冲刺", "note": "string"}],
+    "match": [{"name": "string", "program": "string", "match_level": "匹配", "note": "string"}],
+    "safe": [{"name": "string", "program": "string", "match_level": "稳妥", "note": "string"}]
+  },
+  "course_recommendations": [{"course": "string", "reason": "string", "priority": "高/中/低"}],
+  "plan_3_months": [{"task": "string", "deadline": "string", "priority": "高/中"}]
 }`
 }
 

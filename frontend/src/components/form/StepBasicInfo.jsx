@@ -71,7 +71,7 @@ export default function StepBasicInfo({ formData, updateField }) {
         </div>
       </div>
 
-      {/* 邮箱 */}
+      {/* 邮箱（从账号自动填充） */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           邮箱 <span className="text-red-500">*</span>
@@ -79,10 +79,11 @@ export default function StepBasicInfo({ formData, updateField }) {
         <input
           type="email"
           value={formData.email}
-          onChange={(e) => updateField('email', e.target.value)}
+          readOnly
           placeholder="your@email.com"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+          className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed outline-none"
         />
+        <p className="text-xs text-gray-400 mt-1">邮箱来自你的账号，不可修改</p>
       </div>
 
       {/* 手机号 */}

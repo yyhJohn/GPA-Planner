@@ -1,13 +1,24 @@
-const semesters = [
-  { value: 'freshman_fall', label: '大一上' },
-  { value: 'freshman_spring', label: '大一下' },
-  { value: 'sophomore_fall', label: '大二上' },
-  { value: 'sophomore_spring', label: '大二下' },
-  { value: 'junior_fall', label: '大三上' },
-  { value: 'junior_spring', label: '大三下' },
-  { value: 'senior_fall', label: '大四上' },
-  { value: 'senior_spring', label: '大四下' },
-]
+function getSemesters(duration) {
+  const names = ['一', '二', '三', '四', '五', '六', '七']
+  const semesters = []
+  const years = duration || 4
+  for (let i = 0; i < years; i++) {
+    semesters.push({ value: `year${i + 1}_fall`, label: `大${names[i]}上` })
+    semesters.push({ value: `year${i + 1}_spring`, label: `大${names[i]}下` })
+  }
+  return semesters
+}
+
+// 兼容旧数据：把 freshman_fall 等映射到 year1_fall
+function migrateSemester(value) {
+  const map = {
+    freshman_fall: 'year1_fall', freshman_spring: 'year1_spring',
+    sophomore_fall: 'year2_fall', sophomore_spring: 'year2_spring',
+    junior_fall: 'year3_fall', junior_spring: 'year3_spring',
+    senior_fall: 'year4_fall', senior_spring: 'year4_spring',
+  }
+  return map[value] || value
+}
 
 const courseTypes = [
   { value: 'required', label: '必修' },
@@ -30,11 +41,22 @@ const categories = [
 
 export default function StepCourses({ formData, updateField }) {
   const courses = formData.courses
+  const duration = formData.duration || 4
+  const semesters = getSemesters(duration)
+
+  // 确保课程的 semester 在有效范围内
+  const validSemesters = semesters.map((s) => s.value)
+  const normalizedCourses = courses.map((c) => ({
+    ...c,
+    semester: validSemesters.includes(migrateSemester(c.semester))
+      ? migrateSemester(c.semester)
+      : semesters[0].value,
+  }))
 
   const addCourse = () => {
     updateField('courses', [
       ...courses,
-      { courseName: '', courseType: 'required', credit: '', score: '', scoreType: 'grade', semester: 'freshman_fall', category: '' },
+      { courseName: '', courseType: 'required', credit: '', score: '', scoreType: 'grade', semester: semesters[0].value, category: '' },
     ])
   }
 
@@ -70,7 +92,7 @@ export default function StepCourses({ formData, updateField }) {
 
       {/* Course list */}
       <div className="space-y-4">
-        {courses.map((course, index) => (
+        {normalizedCourses.map((course, index) => (
           <div key={index} className="bg-gray-50 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-500">课程 {index + 1}</span>
@@ -148,6 +170,7 @@ export default function StepCourses({ formData, updateField }) {
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
+              <p className="text-xs text-gray-400 sm:col-span-2">当前学制 {duration} 年，显示 {duration * 2} 个学期</p>
 
               {/* 课程分类 */}
               <select

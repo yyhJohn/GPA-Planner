@@ -29,10 +29,13 @@ export default function ReportsPage() {
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <a href="#" className="flex items-center gap-2">
             <span className="text-xl">🎓</span>
-            <span className="font-bold text-gray-900">StudyPath AI</span>
+            <span className="font-bold text-gray-900">GPA Planner</span>
           </a>
           <a href="#/profile" className="btn-primary text-sm">
             + 新建报告
+          </a>
+          <a href="#/profile/edit" className="btn-secondary text-sm">
+            ✏️ 修改背景
           </a>
         </div>
       </nav>

@@ -27,6 +27,16 @@ export default function GPACalculator() {
     setCourses(updated)
   }
 
+  const toggleScoreType = (i) => {
+    const updated = [...courses]
+    updated[i] = {
+      ...updated[i],
+      scoreType: updated[i].scoreType === 'grade' ? 'percentage' : 'grade',
+      score: '',
+    }
+    setCourses(updated)
+  }
+
   const handleCalc = () => {
     const valid = courses.filter(c => c.credit && c.score)
     if (valid.length === 0) return
@@ -69,7 +79,7 @@ export default function GPACalculator() {
         <div className="hidden sm:flex items-center gap-3 px-3 text-xs text-gray-500 font-medium">
           <span className="flex-1">课程名称</span>
           <span className="w-16 text-center">学分</span>
-          <span className="w-20 text-center">成绩</span>
+          <span className="w-28 text-center">成绩</span>
           <span className="w-8"></span>
         </div>
 
@@ -91,14 +101,35 @@ export default function GPACalculator() {
               onChange={(e) => updateCourse(i, 'credit', e.target.value)}
               className="sm:w-16 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
-            <select
-              value={course.score}
-              onChange={(e) => updateCourse(i, 'score', e.target.value)}
-              className="sm:w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            >
-              <option value="">成绩</option>
-              {gradeOptions.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
+            <div className="flex items-center gap-1">
+              {course.scoreType === 'grade' ? (
+                <select
+                  value={course.score}
+                  onChange={(e) => updateCourse(i, 'score', e.target.value)}
+                  className="flex-1 sm:w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="">成绩</option>
+                  {gradeOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              ) : (
+                <input
+                  type="number"
+                  placeholder="分数"
+                  min="0"
+                  max="100"
+                  value={course.score}
+                  onChange={(e) => updateCourse(i, 'score', e.target.value)}
+                  className="flex-1 sm:w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              )}
+              <button
+                onClick={() => toggleScoreType(i)}
+                className="px-2 py-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors"
+                title={course.scoreType === 'grade' ? '切换到百分制输入' : '切换到等级制输入'}
+              >
+                {course.scoreType === 'grade' ? '%' : 'ABC'}
+              </button>
+            </div>
             <button
               onClick={() => removeCourse(i)}
               className="sm:w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"

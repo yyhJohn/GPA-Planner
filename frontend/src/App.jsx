@@ -61,7 +61,7 @@ function App() {
     return <ReportsPage />
   }
 
-  if (route === '#/profile') {
+  if (route === '#/profile' || route === '#/profile/edit') {
     return <ProfileFormPage />
   }
 

@@ -37,7 +37,7 @@ export default function FAQ() {
           常见问题
         </h2>
         <p className="section-subtitle">
-          还有疑问？联系我们 support@studypath.ai
+          还有疑问？联系我们 support@gpa-planner.com
         </p>
 
         <div className="space-y-4">

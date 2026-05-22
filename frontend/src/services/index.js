@@ -2,7 +2,7 @@
 // API 请求封装
 // ============================================================
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001/v1'
+const API_BASE = import.meta.env.VITE_API_BASE || '/v1'
 
 class ApiError extends Error {
   constructor(code, message) {
@@ -38,11 +38,20 @@ async function request(endpoint, options = {}) {
 // ============================================================
 
 export const authService = {
-  register: (email, password, name) =>
-    request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name }) }),
+  register: (email, password, name, code) =>
+    request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name, code }) }),
 
-  login: (email, password) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  login: (email, password, code) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, code }) }),
+
+  sendCode: (email, purpose) =>
+    request('/auth/send-code', { method: 'POST', body: JSON.stringify({ email, purpose }) }),
+
+  forgotPassword: (email) =>
+    request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (email, code, newPassword) =>
+    request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, newPassword }) }),
 }
 
 // ============================================================
@@ -76,4 +85,24 @@ export const reportService = {
 
   generateFull: (freeReportId) =>
     request('/reports/full', { method: 'POST', body: JSON.stringify({ freeReportId }) }),
+
+  simulate: (reportId, availableCourses, targetGpa) =>
+    request('/reports/simulate', { method: 'POST', body: JSON.stringify({ reportId, availableCourses, targetGpa }) }),
+}
+
+// ============================================================
+// 课程
+// ============================================================
+
+export const courseService = {
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString()
+    return request(`/courses${query ? `?${query}` : ''}`)
+  },
+
+  batchAdd: (courses) =>
+    request('/courses/batch', { method: 'POST', body: JSON.stringify({ courses }) }),
+
+  delete: (id) =>
+    request(`/courses/${id}`, { method: 'DELETE' }),
 }
