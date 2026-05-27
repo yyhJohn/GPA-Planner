@@ -3,7 +3,7 @@ export default function Process() {
     {
       step: '01',
       title: '输入课程信息',
-      description: '输入你的课程、学分、成绩。支持手动录入或从成绩单自动识别。',
+      description: '输入你的课程、学分、成绩。支持手动录入或上传成绩单 AI 自动识别。',
       icon: '📝',
     },
     {

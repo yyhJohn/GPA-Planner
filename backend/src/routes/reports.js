@@ -1,6 +1,7 @@
 const express = require('express')
 const prisma = require('../lib/prisma')
 const openai = require('../lib/openai')
+const PDFDocument = require('pdfkit')
 
 const router = express.Router()
 
@@ -79,6 +80,161 @@ router.get('/:id', async (req, res) => {
       success: false,
       error: { code: 'INTERNAL_ERROR', message: '服务器内部错误' },
     })
+  }
+})
+
+// GET /reports/:id/pdf - 下载 PDF
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const report = await prisma.report.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+    })
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'REPORT_NOT_FOUND', message: '报告不存在' },
+      })
+    }
+
+    const content = report.content || {}
+    const doc = new PDFDocument({ size: 'A4', margin: 50 })
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="report-${report.id}.pdf"`)
+    doc.pipe(res)
+
+    // 尝试使用系统中文字体
+    const fontPaths = [
+      '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+      '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+      '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+      '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+      '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+    ]
+    let fontRegistered = false
+    for (const fp of fontPaths) {
+      try {
+        const fs = require('fs')
+        if (fs.existsSync(fp)) {
+          doc.registerFont('Chinese', fp)
+          doc.font('Chinese')
+          fontRegistered = true
+          break
+        }
+      } catch {}
+    }
+
+    // Header
+    doc.fontSize(24).text('GPA Planner Report', { align: 'center' })
+    doc.moveDown(0.3)
+    doc.fontSize(10).fillColor('#666').text(
+      `Generated: ${new Date(report.createdAt).toLocaleDateString('zh-CN')} | ID: ${report.id}`,
+      { align: 'center' }
+    )
+    doc.moveDown(1)
+
+    // Competitiveness Score
+    const score = report.competitivenessScore || content.competitiveness_score?.total || 0
+    doc.fontSize(16).fillColor('#000').text(`Competitiveness Score: ${score}/100`)
+    doc.moveDown(0.5)
+
+    // GPA Analysis
+    const gpa = content.gpa_analysis
+    if (gpa) {
+      doc.fontSize(14).fillColor('#1a56db').text('GPA Analysis')
+      doc.fontSize(11).fillColor('#333')
+      doc.text(`Current GPA: ${gpa.current_gpa || '-'} / ${gpa.gpa_scale || 4.0}`)
+      doc.text(`Ranking: ${gpa.ranking_estimate || '-'}`)
+      if (gpa.strengths?.length) {
+        doc.moveDown(0.3)
+        doc.text('Strengths:')
+        gpa.strengths.forEach((s) => doc.text(`  - ${s}`))
+      }
+      if (gpa.weaknesses?.length) {
+        doc.moveDown(0.3)
+        doc.text('Weaknesses:')
+        gpa.weaknesses.forEach((w) => doc.text(`  - ${w}`))
+      }
+      doc.moveDown(0.5)
+    }
+
+    // Course Matching
+    const cm = content.course_matching
+    if (cm) {
+      doc.fontSize(14).fillColor('#1a56db').text('Course Matching')
+      doc.fontSize(11).fillColor('#333')
+      doc.text(`Match Rate: ${cm.match_rate || 0}%`)
+      if (cm.covered?.length) doc.text(`Covered: ${cm.covered.join(', ')}`)
+      if (cm.missing?.length) doc.text(`Missing: ${cm.missing.join(', ')}`)
+      if (cm.suggestion) doc.text(`Suggestion: ${cm.suggestion}`)
+      doc.moveDown(0.5)
+    }
+
+    // Schools
+    const schools = content.schools
+    if (schools) {
+      doc.fontSize(14).fillColor('#1a56db').text('School Recommendations')
+      doc.fontSize(11).fillColor('#333')
+      const sections = [
+        { key: 'sprint', label: 'Sprint' },
+        { key: 'match', label: 'Match' },
+        { key: 'safe', label: 'Safe' },
+      ]
+      sections.forEach(({ key, label }) => {
+        const list = schools[key]
+        if (list?.length) {
+          doc.moveDown(0.3)
+          doc.fontSize(12).fillColor('#000').text(`${label}:`)
+          doc.fontSize(11).fillColor('#333')
+          list.forEach((s) => doc.text(`  - ${s.name || '***'} - ${s.program || '***'} (${s.match_level || ''})`))
+        }
+      })
+      doc.moveDown(0.5)
+    }
+
+    // 3-month plan
+    const plan3 = content.plan_3_months
+    if (plan3?.length) {
+      doc.fontSize(14).fillColor('#1a56db').text('3-Month Plan')
+      doc.fontSize(11).fillColor('#333')
+      plan3.forEach((p, i) => doc.text(`${i + 1}. ${p.task} (${p.priority || ''}) - ${p.deadline || ''}`))
+      doc.moveDown(0.5)
+    }
+
+    // 6-month plan
+    const plan6 = content.plan_6_months
+    if (plan6?.length) {
+      doc.fontSize(14).fillColor('#1a56db').text('6-Month Plan')
+      doc.fontSize(11).fillColor('#333')
+      plan6.forEach((p, i) => doc.text(`${i + 1}. ${p.task} (${p.priority || ''}) - ${p.deadline || ''}`))
+      doc.moveDown(0.5)
+    }
+
+    // Risks
+    const risks = content.risks
+    if (risks?.length) {
+      doc.fontSize(14).fillColor('#1a56db').text('Risk Alerts')
+      doc.fontSize(11).fillColor('#333')
+      risks.forEach((r) => doc.text(`[${r.level}] ${r.text} => ${r.action}`))
+    }
+
+    // Footer
+    doc.moveDown(2)
+    doc.fontSize(9).fillColor('#999').text(
+      'This report is AI-generated for reference only. Please verify with official school sources.',
+      { align: 'center' }
+    )
+
+    doc.end()
+  } catch (err) {
+    console.error('PDF generation error:', err)
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: { code: 'PDF_GENERATION_FAILED', message: 'PDF 生成失败' },
+      })
+    }
   }
 })
 

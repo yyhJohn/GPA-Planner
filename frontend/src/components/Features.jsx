@@ -26,6 +26,16 @@ export default function Features() {
       description: '根据你的年级自动生成申请 Checklist，关键节点不再错过。',
     },
     {
+      icon: '📸',
+      title: '成绩单 OCR',
+      description: '上传成绩单图片，AI 自动识别课程、学分、成绩，告别手动录入。',
+    },
+    {
+      icon: '✍️',
+      title: '文书灵感',
+      description: 'AI 根据你的背景生成 PS / CV 写作素材、叙事框架和段落示例。',
+    },
+    {
       icon: '🔒',
       title: '数据安全',
       description: '成绩数据本地计算，加密存储，不泄露给任何第三方。',

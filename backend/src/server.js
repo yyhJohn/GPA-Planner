@@ -9,6 +9,10 @@ const profileRoutes = require('./routes/profile')
 const reportRoutes = require('./routes/reports')
 const courseRoutes = require('./routes/courses')
 const simulateRoutes = require('./routes/simulate')
+const ocrRoutes = require('./routes/ocr')
+const writingRoutes = require('./routes/writing')
+const gpaGoalRoutes = require('./routes/gpa-goal')
+const timelineRoutes = require('./routes/timeline')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -31,6 +35,10 @@ app.use('/v1/profile', authMiddleware, validationMiddleware, profileRoutes)
 app.use('/v1/reports', authMiddleware, validationMiddleware, reportRoutes)
 app.use('/v1/courses', authMiddleware, courseRoutes)
 app.use('/v1/reports', authMiddleware, simulateRoutes)
+app.use('/v1/ocr', authMiddleware, ocrRoutes)
+app.use('/v1/writing', authMiddleware, writingRoutes)
+app.use('/v1/gpa', authMiddleware, gpaGoalRoutes)
+app.use('/v1/timeline', authMiddleware, timelineRoutes)
 
 // Error handler
 app.use((err, req, res, next) => {

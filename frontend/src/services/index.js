@@ -41,8 +41,8 @@ export const authService = {
   register: (email, password, name, code) =>
     request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name, code }) }),
 
-  login: (email, password, code) =>
-    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, code }) }),
+  login: (email, password) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
   sendCode: (email, purpose) =>
     request('/auth/send-code', { method: 'POST', body: JSON.stringify({ email, purpose }) }),
@@ -105,4 +105,63 @@ export const courseService = {
 
   delete: (id) =>
     request(`/courses/${id}`, { method: 'DELETE' }),
+}
+
+// ============================================================
+// OCR 成绩单识别
+// ============================================================
+
+export const ocrService = {
+  recognizeTranscript: async (file) => {
+    const token = localStorage.getItem('token')
+    const formData = new FormData()
+    formData.append('image', file)
+
+    const response = await fetch(`${API_BASE}/ocr/transcript`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    const data = await response.json()
+    if (!response.ok) throw new ApiError(data.error?.code || 'UNKNOWN', data.error?.message || 'OCR 失败')
+    return data
+  },
+}
+
+// ============================================================
+// 文书灵感
+// ============================================================
+
+export const writingService = {
+  inspire: (type = 'ps') =>
+    request('/writing/inspire', { method: 'POST', body: JSON.stringify({ type }) }),
+}
+
+// ============================================================
+// GPA 目标反推
+// ============================================================
+
+export const gpaService = {
+  goal: (data) =>
+    request('/gpa/goal', { method: 'POST', body: JSON.stringify(data) }),
+
+  trend: () => request('/gpa/trend'),
+
+  downloadPdf: async (reportId) => {
+    const token = localStorage.getItem('token')
+    const API_BASE = import.meta.env.VITE_API_BASE || '/v1'
+    const response = await fetch(`${API_BASE}/reports/${reportId}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new Error('PDF 下载失败')
+    return response.blob()
+  },
+}
+
+// ============================================================
+// 申请时间线
+// ============================================================
+
+export const timelineService = {
+  get: () => request('/timeline'),
 }

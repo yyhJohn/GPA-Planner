@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { authService } from '../services'
 import { setToken } from '../utils'
 
-// 页面模式：login / register / forgot
+// 页面模式：login / register / forgot / reset
 const MODES = {
   LOGIN: 'login',
   REGISTER: 'register',
@@ -16,53 +16,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [loginMethod, setLoginMethod] = useState('password') // password / code
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-
-  // 验证码倒计时
   const [countdown, setCountdown] = useState(0)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [])
-
-  const startCountdown = () => {
-    setCountdown(60)
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-  }
-
-  // 发送验证码
-  const handleSendCode = async () => {
-    if (!email) {
-      setError('请先输入邮箱')
-      return
-    }
-    setError('')
-    setSuccess('')
-    setLoading(true)
-    try {
-      const purpose = mode === MODES.REGISTER ? 'register' :
-                      mode === MODES.FORGOT ? 'password_reset' : 'login'
-      await authService.sendCode(email, purpose)
-      setSuccess('验证码已发送到你的邮箱')
-      startCountdown()
-    } catch (err) {
-      setError(err.message || '发送失败，请稍后重试')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // 登录
   const handleLogin = async (e) => {
@@ -70,11 +27,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await authService.login(
-        email,
-        loginMethod === 'password' ? password : undefined,
-        loginMethod === 'code' ? code : undefined,
-      )
+      const res = await authService.login(email, password)
       setToken(res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
       if (res.data.hasProfile) {
@@ -113,7 +66,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await authService.forgotPassword(email)
-      setSuccess('如果该邮箱已注册，验证码已发送')
+      setSuccess('如果该邮箱已注册，验证码已发送到你的邮箱')
       setMode(MODES.RESET)
       startCountdown()
     } catch (err) {
@@ -136,6 +89,54 @@ export default function LoginPage() {
       setCode('')
     } catch (err) {
       setError(err.message || '重置失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const startCountdown = () => {
+    setCountdown(60)
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  // 发送注册验证码
+  const handleSendCode = async () => {
+    if (!email) {
+      setError('请先输入邮箱')
+      return
+    }
+    setError('')
+    setSuccess('')
+    setLoading(true)
+    try {
+      await authService.sendCode(email, 'register')
+      setSuccess('验证码已发送到你的邮箱')
+      startCountdown()
+    } catch (err) {
+      setError(err.message || '发送失败，请稍后重试')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendCode = async () => {
+    setError('')
+    setSuccess('')
+    setLoading(true)
+    try {
+      await authService.forgotPassword(email)
+      setSuccess('验证码已重新发送')
+      startCountdown()
+    } catch (err) {
+      setError(err.message || '发送失败')
     } finally {
       setLoading(false)
     }
@@ -195,7 +196,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ========== 登录 ========== */}
+          {/* ========== 登录（仅密码） ========== */}
           {mode === MODES.LOGIN && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
@@ -209,83 +210,26 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
-
-              {/* 登录方式切换 */}
-              <div className="flex gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod('password')}
-                  className={`px-3 py-1.5 rounded-full transition-colors ${
-                    loginMethod === 'password'
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  密码登录
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLoginMethod('code')}
-                  className={`px-3 py-1.5 rounded-full transition-colors ${
-                    loginMethod === 'code'
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                  }`}
-                >
-                  验证码登录
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="输入密码"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+                <div className="text-right mt-1">
+                  <button
+                    type="button"
+                    onClick={() => switchMode(MODES.FORGOT)}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    忘记密码？
+                  </button>
+                </div>
               </div>
-
-              {loginMethod === 'password' ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="输入密码"
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                  <div className="text-right mt-1">
-                    <button
-                      type="button"
-                      onClick={() => switchMode(MODES.FORGOT)}
-                      className="text-sm text-blue-600 hover:text-blue-700"
-                    >
-                      忘记密码？
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">验证码</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="6 位验证码"
-                      maxLength={6}
-                      required
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none tracking-widest text-center font-mono text-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSendCode}
-                      disabled={countdown > 0 || loading}
-                      className={`px-4 py-3 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-                        countdown > 0
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
-                    >
-                      {countdown > 0 ? `${countdown}s` : '发送验证码'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
               <button
                 type="submit"
                 disabled={loading}
@@ -295,12 +239,12 @@ export default function LoginPage() {
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {loading ? '处理中...' : '登录'}
+                {loading ? '登录中...' : '登录'}
               </button>
             </form>
           )}
 
-          {/* ========== 注册 ========== */}
+          {/* ========== 注册（需要验证码） ========== */}
           {mode === MODES.REGISTER && (
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
@@ -325,8 +269,6 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
-
-              {/* 验证码 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">邮箱验证码</label>
                 <div className="flex gap-2">
@@ -353,7 +295,6 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
                 <input
@@ -366,7 +307,6 @@ export default function LoginPage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
-
               <button
                 type="submit"
                 disabled={loading}
@@ -376,7 +316,7 @@ export default function LoginPage() {
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
-                {loading ? '处理中...' : '注册'}
+                {loading ? '注册中...' : '注册'}
               </button>
             </form>
           )}
@@ -447,7 +387,7 @@ export default function LoginPage() {
                     />
                     <button
                       type="button"
-                      onClick={handleSendCode}
+                      onClick={handleResendCode}
                       disabled={countdown > 0 || loading}
                       className={`px-4 py-3 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
                         countdown > 0

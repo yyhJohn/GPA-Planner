@@ -8,90 +8,6 @@ const { sendEmail, buildCodeEmail } = require('../lib/email')
 const router = express.Router()
 
 // ============================================================
-// POST /auth/send-code — 发送验证码
-// ============================================================
-router.post('/send-code', async (req, res) => {
-  try {
-    const { email, purpose } = req.body
-    const p = purpose || 'register'
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(422).json({
-        success: false,
-        error: { code: 'VALIDATION_ERROR', message: '邮箱格式不正确' },
-      })
-    }
-
-    // 注册时检查邮箱是否已存在
-    if (p === 'register') {
-      const existing = await prisma.user.findUnique({ where: { email } })
-      if (existing) {
-        return res.status(409).json({
-          success: false,
-          error: { code: 'EMAIL_EXISTS', message: '该邮箱已被注册，请直接登录' },
-        })
-      }
-    }
-
-    // 忘记密码时检查邮箱是否存在
-    if (p === 'password_reset') {
-      const existing = await prisma.user.findUnique({ where: { email } })
-      if (!existing) {
-        // 安全考虑：不暴露邮箱是否存在
-        return res.json({
-          success: true,
-          message: '如果该邮箱已注册，验证码将发送到你的邮箱',
-        })
-      }
-    }
-
-    // 频率限制：同一邮箱 60 秒内只能发一次
-    const recentCode = await prisma.emailVerificationCode.findFirst({
-      where: {
-        email,
-        purpose: p,
-        createdAt: { gt: new Date(Date.now() - 60 * 1000) },
-      },
-    })
-
-    if (recentCode) {
-      return res.status(429).json({
-        success: false,
-        error: { code: 'TOO_FAST', message: '请等待 60 秒后再重试' },
-      })
-    }
-
-    // 生成并发送验证码
-    const code = await generateCode(email, p, 10)
-    console.log(`[Auth] 📧 验证码: ${email} -> ${code} (${p})`)
-    const html = buildCodeEmail(code, p)
-    const subjects = {
-      register: 'GPA Planner - 注册验证码',
-      login: 'GPA Planner - 登录验证码',
-      password_reset: 'GPA Planner - 密码重置验证码',
-    }
-
-    const result = await sendEmail(email, subjects[p] || 'GPA Planner - 验证码', html)
-
-    // 即使邮件发送失败也返回成功（开发模式会在 console 打印验证码）
-    if (!result.ok) {
-      console.log(`[Dev] 验证码已生成: ${email} -> ${code}`)
-    }
-
-    res.json({
-      success: true,
-      message: '验证码已发送到你的邮箱',
-    })
-  } catch (err) {
-    console.error('Send code error:', err)
-    res.status(500).json({
-      success: false,
-      error: { code: 'INTERNAL_ERROR', message: '服务器内部错误' },
-    })
-  }
-})
-
-// ============================================================
 // POST /auth/register — 注册（需要验证码）
 // ============================================================
 router.post('/register', async (req, res) => {
@@ -162,16 +78,16 @@ router.post('/register', async (req, res) => {
 })
 
 // ============================================================
-// POST /auth/login — 登录（密码 or 验证码）
+// POST /auth/login — 登录（仅密码）
 // ============================================================
 router.post('/login', async (req, res) => {
   try {
-    const { email, password, code } = req.body
+    const { email, password } = req.body
 
-    if (!email) {
+    if (!email || !password) {
       return res.status(422).json({
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: '邮箱不能为空' },
+        error: { code: 'VALIDATION_ERROR', message: '邮箱和密码不能为空' },
       })
     }
 
@@ -183,29 +99,18 @@ router.post('/login', async (req, res) => {
       })
     }
 
-    // 支持两种登录方式：密码 或 验证码
-    if (code) {
-      // 验证码登录
-      const codeValid = await verifyCode(email, code, 'login')
-      if (!codeValid) {
-        return res.status(401).json({
-          success: false,
-          error: { code: 'INVALID_CODE', message: '验证码无效或已过期' },
-        })
-      }
-    } else if (password) {
-      // 密码登录
-      const valid = await bcrypt.compare(password, user.passwordHash)
-      if (!valid) {
-        return res.status(401).json({
-          success: false,
-          error: { code: 'INVALID_CREDENTIALS', message: '邮箱或密码错误' },
-        })
-      }
-    } else {
-      return res.status(422).json({
+    if (!user.passwordHash) {
+      return res.status(401).json({
         success: false,
-        error: { code: 'VALIDATION_ERROR', message: '请输入密码或验证码' },
+        error: { code: 'NO_PASSWORD', message: '该账号未设置密码，请使用忘记密码功能重置' },
+      })
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash)
+    if (!valid) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_CREDENTIALS', message: '邮箱或密码错误' },
       })
     }
 
@@ -271,7 +176,12 @@ router.post('/forgot-password', async (req, res) => {
 
     const code = await generateCode(email, 'password_reset', 15)
     const html = buildCodeEmail(code, 'password_reset')
-    await sendEmail(email, 'GPA Planner - 密码重置验证码', html)
+    const result = await sendEmail(email, 'StudyPath AI - 密码重置验证码', html)
+
+    // 开发模式：如果邮件发送失败，在控制台打印验证码
+    if (!result.ok) {
+      console.log(`[Dev] 🔑 密码重置验证码: ${email} -> ${code}`)
+    }
 
     res.json({
       success: true,

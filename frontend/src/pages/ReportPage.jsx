@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { reportService } from '../services'
+import { reportService, gpaService } from '../services'
+import GPATrendChart from '../components/GPATrendChart'
 
 // Mock data for the report (fallback)
 const mockReport = {
@@ -177,8 +178,30 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [unlocking, setUnlocking] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [reportId, setReportId] = useState(null)
   const [isPaid, setIsPaid] = useState(false)
+
+  // PDF 下载
+  const handleDownloadPdf = async () => {
+    if (!reportId) return
+    setDownloadingPdf(true)
+    try {
+      const blob = await gpaService.downloadPdf(reportId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `report-${reportId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('PDF 下载失败：' + (err.message || '请稍后重试'))
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
 
   // 选课模拟状态
   const [simCourses, setSimCourses] = useState([{ courseName: '', credit: '3', difficulty: 'medium' }])
@@ -300,7 +323,16 @@ export default function ReportPage() {
               <p className="text-blue-200 text-sm">AI 留学规划报告</p>
               <h1 className="text-2xl md:text-3xl font-bold mt-1">你好，{report.studentName} 👋</h1>
               <p className="text-blue-200 text-sm mt-1">报告生成于 {report.createdAt}</p>
-              <a href="#/profile/edit" className="inline-block mt-2 text-xs text-blue-200 hover:text-white underline">✏️ 修改背景信息</a>
+              <div className="flex items-center gap-3 mt-2">
+                <a href="#/profile/edit" className="text-xs text-blue-200 hover:text-white underline">✏️ 修改背景信息</a>
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingPdf}
+                  className="text-xs text-blue-200 hover:text-white underline"
+                >
+                  {downloadingPdf ? '⏳ 生成中...' : '📄 下载 PDF'}
+                </button>
+              </div>
             </div>
             <div className="text-center">
               <ScoreRing score={report.overallScore} size={100} strokeWidth={8} color="#60A5FA" />
@@ -369,6 +401,11 @@ export default function ReportPage() {
               </ul>
             </div>
           </div>
+        </Section>
+
+        {/* GPA 趋势图 */}
+        <Section icon="📈" title="GPA 趋势" subtitle="按学期展示 GPA 变化">
+          <GPATrendChart />
         </Section>
 
         {/* 课程匹配度 */}

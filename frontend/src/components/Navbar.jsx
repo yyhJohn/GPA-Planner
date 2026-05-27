@@ -64,6 +64,18 @@ export default function Navbar() {
                 <a href="#/reports" className="text-gray-600 hover:text-blue-600 font-medium">
                   我的报告
                 </a>
+                <a href="#/ocr" className="text-gray-600 hover:text-blue-600 font-medium">
+                  成绩单OCR
+                </a>
+                <a href="#/writing" className="text-gray-600 hover:text-blue-600 font-medium">
+                  文书灵感
+                </a>
+                <a href="#/gpa-goal" className="text-gray-600 hover:text-blue-600 font-medium">
+                  GPA目标
+                </a>
+                <a href="#/timeline" className="text-gray-600 hover:text-blue-600 font-medium">
+                  时间线
+                </a>
                 <a href="#/profile" className="text-gray-600 hover:text-blue-600 font-medium">
                   填写档案
                 </a>
@@ -118,6 +130,10 @@ export default function Navbar() {
                 {loggedIn ? (
                   <>
                     <a href="#/reports" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>我的报告</a>
+                    <a href="#/ocr" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>成绩单OCR</a>
+                    <a href="#/writing" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>文书灵感</a>
+                    <a href="#/gpa-goal" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>GPA目标</a>
+                    <a href="#/timeline" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>时间线</a>
                     <a href="#/profile" className="text-gray-600 hover:text-blue-600 font-medium px-2" onClick={() => setIsMenuOpen(false)}>填写档案</a>
                     <button onClick={() => { handleLogout(); setIsMenuOpen(false) }} className="text-left text-gray-600 hover:text-red-600 font-medium px-2">退出</button>
                   </>

@@ -14,6 +14,10 @@ import ProfileFormPage from './pages/ProfileFormPage'
 import ReportPage from './pages/ReportPage'
 import LoginPage from './pages/LoginPage'
 import ReportsPage from './pages/ReportsPage'
+import OCRPage from './pages/OCRPage'
+import WritingPage from './pages/WritingPage'
+import GPAGoalPage from './pages/GPAGoalPage'
+import TimelinePage from './pages/TimelinePage'
 
 function HomePage() {
   return (
@@ -67,6 +71,22 @@ function App() {
 
   if (route.startsWith('#/report')) {
     return <ReportPage />
+  }
+
+  if (route === '#/ocr') {
+    return <OCRPage />
+  }
+
+  if (route === '#/writing') {
+    return <WritingPage />
+  }
+
+  if (route === '#/gpa-goal') {
+    return <GPAGoalPage />
+  }
+
+  if (route === '#/timeline') {
+    return <TimelinePage />
   }
 
   return (

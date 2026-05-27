@@ -12,19 +12,19 @@ const validators = {
     if (!body.email || !EMAIL_RE.test(body.email)) errors.push('邮箱格式不正确')
     if (!body.password || !PASSWORD_RE.test(body.password)) errors.push('密码需 8-32 位，含大小写字母和数字')
     if (!body.name || body.name.length < 2 || body.name.length > 50) errors.push('姓名需 2-50 字符')
+    if (!body.code || body.code.length !== 6) errors.push('验证码为 6 位数字')
     return errors
   },
   'POST /v1/auth/login': (body) => {
     const errors = []
     if (!body.email) errors.push('邮箱不能为空')
-    if (!body.password && !body.code) errors.push('请输入密码或验证码')
-    if (body.code && (typeof body.code !== 'string' || body.code.length !== 6)) errors.push('验证码为 6 位数字')
+    if (!body.password) errors.push('请输入密码')
     return errors
   },
   'POST /v1/auth/send-code': (body) => {
     const errors = []
     if (!body.email || !EMAIL_RE.test(body.email)) errors.push('邮箱格式不正确')
-    if (body.purpose && !['register', 'login', 'password_reset'].includes(body.purpose)) errors.push('purpose 不合法')
+    if (body.purpose && !['register', 'password_reset'].includes(body.purpose)) errors.push('purpose 不合法')
     return errors
   },
   'POST /v1/auth/forgot-password': (body) => {
